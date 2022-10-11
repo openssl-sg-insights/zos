@@ -32,8 +32,16 @@ type ContractLockedEvent struct {
 	Lock     bool
 }
 
+type PowerChangeEvent struct {
+	Kind   EventKind
+	FarmID FarmID
+	NodeID uint32
+	Target substrate.PowerTarget
+}
+
 type Events interface {
 	PublicConfigEvent(ctx context.Context) <-chan PublicConfigEvent
 	ContractCancelledEvent(ctx context.Context) <-chan ContractCancelledEvent
 	ContractLockedEvent(ctx context.Context) <-chan ContractLockedEvent
+	PowerChangeEvent(ctx context.Context) <-chan PowerChangeEvent
 }

@@ -71,6 +71,30 @@ func (s *EventsStub) ContractLockedEvent(ctx context.Context) (<-chan pkg.Contra
 	return ch, nil
 }
 
+func (s *EventsStub) PowerChangeEvent(ctx context.Context) (<-chan pkg.PowerChangeEvent, error) {
+	ch := make(chan pkg.PowerChangeEvent, 1)
+	recv, err := s.client.Stream(ctx, s.module, s.object, "PowerChangeEvent")
+	if err != nil {
+		return nil, err
+	}
+	go func() {
+		defer close(ch)
+		for event := range recv {
+			var obj pkg.PowerChangeEvent
+			if err := event.Unmarshal(&obj); err != nil {
+				panic(err)
+			}
+			select {
+			case <-ctx.Done():
+				return
+			case ch <- obj:
+			default:
+			}
+		}
+	}()
+	return ch, nil
+}
+
 func (s *EventsStub) PublicConfigEvent(ctx context.Context) (<-chan pkg.PublicConfigEvent, error) {
 	ch := make(chan pkg.PublicConfigEvent, 1)
 	recv, err := s.client.Stream(ctx, s.module, s.object, "PublicConfigEvent")

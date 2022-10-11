@@ -166,6 +166,27 @@ func (e *Events) process(changes []types.StorageChangeSet, meta *types.Metadata)
 					Lock:     false,
 				}
 			}
+
+				for _, e := range events.SmartContractModule_ChangePowerTarget {
+					// we need to know about all events from all
+					if pkg.FarmID(e.FarmID) != m.farm {
+						continue
+					}
+
+					log.Info().
+						Uint32("farmer", e.FarmID).
+						Uint32("node", e.NodeID).
+						Stringer("power", &e.Target).
+						Msg("got power event")
+
+					m.powerChange <- pkg.PowerChangeEvent{
+						Kind:   pkg.EventReceived,
+						FarmID: pkg.FarmID(e.FarmID),
+						NodeID: e.NodeID,
+						Target: e.Target,
+					}
+				}
+
 		}
 	}
 }
@@ -213,6 +234,15 @@ func (e *Events) start(ctx context.Context) {
 		}
 		return
 	}
+}
+
+
+func (m *Manager) PowerChangeEvent(ctx context.Context) <-chan pkg.PowerChangeEvent {
+	m.o.Do(func() {
+		go m.start(ctx)
+	})
+
+	return m.powerChange
 }
 
 func (m *Events) PublicConfigEvent(ctx context.Context) <-chan pkg.PublicConfigEvent {
