@@ -10,61 +10,6 @@ import (
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 )
 
-// Response interface for custom error responses
-// you never need to implement this interface
-// can only be returned by one of the methods in this
-// module.
-
-type Response interface {
-	error
-	state() gridtypes.ResultState
-	err() error
-}
-
-type response struct {
-	s gridtypes.ResultState
-	e error
-}
-
-func (r *response) Error() string {
-	if err := r.err(); err != nil {
-		return err.Error()
-	}
-
-	return ""
-}
-
-func (r *response) Unwrap() error {
-	return r.e
-}
-
-func (r *response) state() gridtypes.ResultState {
-	return r.s
-}
-
-func (r *response) err() error {
-	return r.e
-}
-
-// Ok response. you normally don't need to return
-// this from Manager methods. instead returning `nil` error
-// is preferred.
-func Ok() Response {
-	return &response{s: gridtypes.StateOk}
-}
-
-// UnChanged is a special response status that states that an operation has failed
-// but this did not affect the workload status. Usually during an update when the
-// update could not carried out, but the workload is still running correctly with
-// previous config
-func UnChanged(cause error) Response {
-	return &response{s: gridtypes.StateUnChanged, e: cause}
-}
-
-func Paused() Response {
-	return &response{s: gridtypes.StatePaused, e: fmt.Errorf("paused")}
-}
-
 // Manager defines basic type manager functionality. This interface
 // declares the provision and the deprovision method which is required
 // by any Type manager.
