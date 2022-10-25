@@ -145,12 +145,12 @@ func action(cli *cli.Context) error {
 	go uptime.Start(ctx)
 
 	// start power manager
-	power, err := node.NewPowerManager(redis, sub, uptime, env.FarmerID, nodeID)
-	if err != nil {
-		return errors.Wrap(err, "failed to initialize power manager")
-	}
+	// power, err := node.NewPowerManager(redis, sub, uptime, env.FarmerID, nodeID)
+	// if err != nil {
+	// 	return errors.Wrap(err, "failed to initialize power manager")
+	// }
 
-	go power.Start(ctx)
+	// go power.Start(ctx)
 
 	// start events subsystem.
 	events := events.New(sub, env.FarmerID, nodeID, eventsBlock)
