@@ -21,9 +21,11 @@ type Events struct {
 	last  types.BlockNumber
 
 	node           uint32
+	farm           pkg.FarmID
 	pubCfg         chan pkg.PublicConfigEvent
 	contractCancel chan pkg.ContractCancelledEvent
 	contractLocked chan pkg.ContractLockedEvent
+	powerChange    chan pkg.PowerChangeEvent
 
 	o sync.Once
 }
@@ -32,14 +34,16 @@ var (
 	_ pkg.Events = (*Events)(nil)
 )
 
-func New(sub substrate.Manager, node uint32, state string) *Events {
+func New(sub substrate.Manager, farm pkg.FarmID, node uint32, state string) *Events {
 	return &Events{
 		sub:            sub,
 		state:          state,
+		farm:           farm,
 		node:           node,
 		pubCfg:         make(chan pkg.PublicConfigEvent),
 		contractCancel: make(chan pkg.ContractCancelledEvent),
 		contractLocked: make(chan pkg.ContractLockedEvent),
+		powerChange:    make(chan pkg.PowerChangeEvent),
 	}
 }
 
@@ -167,25 +171,24 @@ func (e *Events) process(changes []types.StorageChangeSet, meta *types.Metadata)
 				}
 			}
 
-				for _, e := range events.SmartContractModule_ChangePowerTarget {
-					// we need to know about all events from all
-					if pkg.FarmID(e.FarmID) != m.farm {
-						continue
-					}
-
-					log.Info().
-						Uint32("farmer", e.FarmID).
-						Uint32("node", e.NodeID).
-						Stringer("power", &e.Target).
-						Msg("got power event")
-
-					m.powerChange <- pkg.PowerChangeEvent{
-						Kind:   pkg.EventReceived,
-						FarmID: pkg.FarmID(e.FarmID),
-						NodeID: e.NodeID,
-						Target: e.Target,
-					}
+			for _, event := range events.SmartContractModule_ChangePowerTarget {
+				// we need to know about all events from all
+				if pkg.FarmID(event.FarmID) != e.farm {
+					continue
 				}
+
+				log.Info().
+					Uint32("farmer", event.FarmID).
+					Uint32("node", event.NodeID).
+					Stringer("power", &event.Target).
+					Msg("got power event")
+
+				e.powerChange <- pkg.PowerChangeEvent{
+					FarmID: e.farm,
+					NodeID: event.NodeID,
+					Target: event.Target,
+				}
+			}
 
 		}
 	}
@@ -236,8 +239,7 @@ func (e *Events) start(ctx context.Context) {
 	}
 }
 
-
-func (m *Manager) PowerChangeEvent(ctx context.Context) <-chan pkg.PowerChangeEvent {
+func (m *Events) PowerChangeEvent(ctx context.Context) <-chan pkg.PowerChangeEvent {
 	m.o.Do(func() {
 		go m.start(ctx)
 	})
