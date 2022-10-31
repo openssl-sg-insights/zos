@@ -33,7 +33,6 @@ type ContractLockedEvent struct {
 }
 
 type PowerChangeEvent struct {
-	Kind   EventKind
 	FarmID FarmID
 	NodeID uint32
 	Target substrate.PowerTarget
